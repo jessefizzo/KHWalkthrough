@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SFX Audition — Dive to the Heart</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Cpath%20d='M4%2026%20L1.5%208%20L10.5%2015%20L16%204%20L21.5%2015%20L30.5%208%20L28%2026%20Z'%20fill='%23f0cf8a'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{color-scheme:dark}
+  body{background:radial-gradient(120% 80% at 50% -10%,#0e2340 0%,#03070f 100%);min-height:100vh;
+       color:#eaf2ff;font-family:Jost,system-ui,sans-serif;padding:30px 24px 80px}
+  .wrap{max-width:1120px;margin:0 auto}
+  h1{font-family:Cinzel,serif;font-weight:900;font-size:31px;
+     background:linear-gradient(180deg,#fff,#a9cdf5 70%,#7ea9d8);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{margin-top:6px;color:#9fb4d0;font-size:14.5px;max-width:74ch;text-wrap:pretty}
+  .card{margin-top:18px;padding:18px 20px;border-radius:18px;border:1px solid rgba(150,200,255,.14);
+        background:linear-gradient(150deg,rgba(12,28,52,.7),rgba(5,13,25,.85))}
+  h2{font-family:Cinzel,serif;font-size:17px;color:#f0cf8a;margin-bottom:4px}
+  .hint{font-size:12.5px;color:#8fa6c2;line-height:1.5}
+  button{font-family:inherit;cursor:pointer;transition:.16s;border-radius:10px}
+  .btn{background:rgba(16,34,60,.85);border:1px solid rgba(150,200,255,.2);color:#dbe8f8;padding:8px 14px;font-size:13px}
+  .btn:hover{border-color:#f0cf8a;color:#f0cf8a}
+  .btn.go{background:linear-gradient(140deg,rgba(52,44,18,.95),rgba(10,22,40,.95));border-color:rgba(240,207,138,.5);color:#f0cf8a;font-weight:600}
+  .roles{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:9px;margin-top:14px}
+  .role{padding:11px 13px;border-radius:13px;border:1px solid rgba(150,200,255,.14);background:rgba(6,16,32,.75)}
+  .role b{font-family:Cinzel,serif;font-size:13.5px;color:#f2f7ff;letter-spacing:.03em}
+  .role .desc{font-size:11.5px;color:#7f95b1;margin-top:2px;line-height:1.4}
+  .role .cur{margin-top:7px;font-size:12.5px;color:#9fd6ff;font-variant-numeric:tabular-nums}
+  .role.armed{border-color:#f0cf8a;background:rgba(38,30,14,.7)}
+  .row{display:flex;align-items:center;gap:12px;padding:7px 10px;border-radius:11px;border-top:1px solid rgba(150,200,255,.07)}
+  .row:hover{background:rgba(255,255,255,.04)}
+  .row .id{font-variant-numeric:tabular-nums;color:#8fa6c2;font-size:12.5px;width:44px}
+  .row .dur{font-variant-numeric:tabular-nums;color:#6c819c;font-size:12px;width:56px;text-align:right}
+  canvas{border-radius:5px;background:rgba(4,11,22,.8);flex:none}
+  .tags{display:flex;gap:5px;flex:1;flex-wrap:wrap}
+  .tag{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;padding:2px 8px;border-radius:7px;
+       border:1px solid rgba(240,207,138,.4);color:#f0cf8a}
+  .mini{background:rgba(10,24,44,.7);border:1px solid rgba(150,200,255,.16);color:#9fb4d0;padding:5px 10px;font-size:12px}
+  .mini:hover{border-color:#f0cf8a;color:#f0cf8a}
+  pre{margin-top:12px;padding:12px 14px;border-radius:11px;background:rgba(2,7,15,.9);border:1px solid rgba(150,200,255,.13);
+      overflow-x:auto;font-family:ui-monospace,monospace;font-size:12px;line-height:1.6;color:#9fd6ff}
+  .ok{color:#5ee2a0}.warn{color:#ffcf7a}
+  #list{max-height:60vh;overflow:auto;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>SFX Audition</h1>
+  <p class="sub">Assign the extracted system sounds to the tracker's seven interface voices. Pick a role,
+     then click a sound to hear it and bind it. The current bindings are my best guess from waveform shape
+     alone — attack time, duration and whether the pitch rises or falls — so expect to change some.</p>
+
+  <div class="card">
+    <h2>1 · Load the bank</h2>
+    <p class="hint">Served over http this loads on its own. Opened as a file, pick the
+       <b>System Sound Effects</b> folder (nothing is uploaded — it is read in the page).</p>
+    <div style="display:flex;gap:9px;margin-top:12px;align-items:center;flex-wrap:wrap">
+      <button class="btn" id="auto">Load from server</button>
+      <label class="btn" style="display:inline-block">Choose folder…
+        <input type="file" id="dir" webkitdirectory directory multiple style="display:none">
+      </label>
+      <span id="status" class="hint"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2 · Choose a role, then click sounds</h2>
+    <div class="roles" id="roles"></div>
+  </div>
+
+  <div class="card">
+    <h2>3 · Sounds</h2>
+    <p class="hint">Sorted shortest first — menu blips live at the top. <button class="mini" id="filter" style="margin-left:6px">Showing: likely menu sounds</button></p>
+    <div id="list"></div>
+  </div>
+
+  <div class="card">
+    <h2>4 · Apply</h2>
+    <p class="hint">Saves your bindings into this browser, trimmed of leading silence and normalised.
+       The tracker picks them up immediately — they override both the synth and the <code>sounds/</code> folder.</p>
+    <div style="display:flex;gap:9px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn go" id="apply">Apply to tracker</button>
+      <button class="btn" id="clear">Clear saved sounds</button>
+      <span id="applied" class="hint"></span>
+    </div>
+    <p class="hint" style="margin-top:14px">To make it permanent instead (so it survives clearing site data,
+       and works from a plain file), run this and delete the saved copy above:</p>
+    <pre id="cp"># choose your bindings first</pre>
+  </div>
+</div>
+
+<script>
+"use strict";
+const ROLES = [
+  ['move',    'Any button, tab or accordion. Fires constantly — keep it short.'],
+  ['select',  'Export, and un-muting.'],
+  ['check',   'An objective goes down. The main reward sound.'],
+  ['uncheck', 'An objective comes back up.'],
+  ['cancel',  'Reset, and a failed import.'],
+  ['chime',   'A group cleared.'],
+  ['fanfare', 'A category, or a whole game at 100%.']
+];
+const GUESS = {move:19, select:10, check:1, uncheck:177, cancel:7, chime:26, fanfare:21};
+const SFX_KEY = 'kh-dive-sfx';
+const FOLDER = 'System Sound Effects';
+const NAME = n => 'se000.ps3#' + n + '.wav';
+
+let ctx = null, sounds = new Map(), armed = 'check', bind = Object.assign({}, GUESS), onlyMenu = true;
+const $ = s => document.querySelector(s);
+const ac = () => (ctx || (ctx = new (window.AudioContext || window.webkitAudioContext)()));
+
+/* ---------- loading ---------- */
+async function fromServer() {
+  $('#status').textContent = 'loading…';
+  let ok = 0;
+  for (let i = 1; i <= 179; i++) {
+    try {
+      const r = await fetch(FOLDER + '/' + encodeURIComponent(NAME(i)));
+      if (!r.ok) continue;
+      await add(i, await r.arrayBuffer());
+      ok++;
+    } catch (e) { /* keep going */ }
+    if (i % 20 === 0) $('#status').textContent = 'loading… ' + ok;
+  }
+  done(ok);
+}
+async function fromFolder(files) {
+  $('#status').textContent = 'reading…';
+  let ok = 0;
+  for (const f of files) {
+    const m = /#(\d+)\.wav$/i.exec(f.name);
+    if (!m) continue;
+    try { await add(+m[1], await f.arrayBuffer()); ok++; } catch (e) {}
+  }
+  done(ok);
+}
+async function add(idx, arr) {
+  const buf = await ac().decodeAudioData(arr.slice(0));
+  sounds.set(idx, { idx, buf, raw: arr });
+}
+function done(n) {
+  $('#status').innerHTML = n ? '<span class="ok">' + n + ' sounds ready</span>'
+                             : '<span class="warn">nothing loaded — check the folder</span>';
+  render();
+}
+
+/* ---------- analysis, mirroring the tracker's trim ---------- */
+function trim(buf) {
+  const d = buf.getChannelData(0), sr = buf.sampleRate;
+  let pk = 0;
+  for (let i = 0; i < d.length; i++) { const a = Math.abs(d[i]); if (a > pk) pk = a; }
+  const thr = Math.max(pk * 0.015, 1e-4);
+  let a = 0, b = d.length - 1;
+  while (a < d.length && Math.abs(d[a]) <= thr) a++;
+  while (b > a && Math.abs(d[b]) <= thr) b--;
+  const out = d.slice(a, b + 1);
+  const fi = Math.min((sr * 0.002) | 0, (out.length / 8) | 0);
+  const fo = Math.min((sr * 0.012) | 0, (out.length / 3) | 0);
+  for (let i = 0; i < fi; i++) out[i] *= i / fi;
+  for (let i = 0; i < fo; i++) out[out.length - 1 - i] *= i / fo;
+  let m = 0;
+  for (let i = 0; i < out.length; i++) m = Math.max(m, Math.abs(out[i]));
+  if (m > 0) for (let i = 0; i < out.length; i++) out[i] = out[i] / m * 0.89;
+  return { data: out, sr };
+}
+function encodeWav(ch, sr) {
+  const n = ch.length, ab = new ArrayBuffer(44 + n * 2), dv = new DataView(ab);
+  const wr = (o, s) => { for (let i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); };
+  wr(0, 'RIFF'); dv.setUint32(4, 36 + n * 2, true); wr(8, 'WAVEfmt ');
+  dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+  dv.setUint32(24, sr, true); dv.setUint32(28, sr * 2, true); dv.setUint16(32, 2, true);
+  dv.setUint16(34, 16, true); wr(36, 'data'); dv.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) dv.setInt16(44 + i * 2, Math.max(-1, Math.min(1, ch[i])) * 32767, true);
+  return ab;
+}
+function b64(ab) {
+  const b = new Uint8Array(ab); let s = '';
+  for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+
+/* ---------- ui ---------- */
+function play(idx) {
+  const s = sounds.get(idx); if (!s) return;
+  const src = ac().createBufferSource();
+  src.buffer = s.buf; src.connect(ac().destination); src.start();
+}
+function wave(cv, buf) {
+  const g = cv.getContext('2d'), W = cv.width, H = cv.height, d = buf.getChannelData(0);
+  g.clearRect(0, 0, W, H);
+  g.strokeStyle = '#5cc8ff'; g.globalAlpha = .85; g.beginPath();
+  const step = Math.max(1, (d.length / W) | 0);
+  for (let x = 0; x < W; x++) {
+    let m = 0;
+    for (let i = x * step; i < (x + 1) * step && i < d.length; i++) m = Math.max(m, Math.abs(d[i]));
+    g.moveTo(x + .5, H / 2 - m * H / 2); g.lineTo(x + .5, H / 2 + m * H / 2);
+  }
+  g.stroke();
+}
+function renderRoles() {
+  $('#roles').innerHTML = '';
+  ROLES.forEach(([r, desc]) => {
+    const d = document.createElement('div');
+    d.className = 'role' + (armed === r ? ' armed' : '');
+    d.innerHTML = '<b>' + r + '</b><div class="desc">' + desc + '</div>' +
+      '<div class="cur">' + (bind[r] ? '#' + bind[r] : '<span style="color:#6c819c">unassigned</span>') + '</div>';
+    d.onclick = () => { armed = r; renderRoles(); render(); };
+    const p = document.createElement('button');
+    p.className = 'mini'; p.textContent = '▶ preview'; p.style.marginTop = '8px';
+    p.onclick = e => { e.stopPropagation(); if (bind[r]) play(bind[r]); };
+    d.appendChild(p);
+    $('#roles').appendChild(d);
+  });
+}
+function render() {
+  renderRoles();
+  const list = $('#list'); list.innerHTML = '';
+  let items = [...sounds.values()];
+  if (onlyMenu) items = items.filter(s => s.buf.duration < 1.2);
+  items.sort((a, b) => a.buf.duration - b.buf.duration);
+  const rev = {}; for (const r in bind) if (bind[r]) (rev[bind[r]] = rev[bind[r]] || []).push(r);
+  items.forEach(s => {
+    const row = document.createElement('div'); row.className = 'row';
+    row.innerHTML = '<span class="id">#' + s.idx + '</span>';
+    const cv = document.createElement('canvas'); cv.width = 190; cv.height = 26;
+    row.appendChild(cv);
+    const tags = document.createElement('div'); tags.className = 'tags';
+    (rev[s.idx] || []).forEach(r => { const t = document.createElement('span'); t.className = 'tag'; t.textContent = r; tags.appendChild(t); });
+    row.appendChild(tags);
+    const dur = document.createElement('span'); dur.className = 'dur';
+    dur.textContent = (s.buf.duration * 1000).toFixed(0) + ' ms'; row.appendChild(dur);
+    const pb = document.createElement('button'); pb.className = 'mini'; pb.textContent = '▶';
+    pb.onclick = () => play(s.idx); row.appendChild(pb);
+    const ab = document.createElement('button'); ab.className = 'mini';
+    ab.textContent = 'bind → ' + armed;
+    ab.onclick = () => { bind[armed] = s.idx; play(s.idx); render(); };
+    row.appendChild(ab);
+    list.appendChild(row);
+    wave(cv, s.buf);
+  });
+  const cps = ROLES.filter(([r]) => bind[r])
+    .map(([r]) => 'cp "' + FOLDER + '/' + NAME(bind[r]) + '" sounds/' + r + '.wav');
+  $('#cp').textContent = cps.length ? cps.join('\n') : '# choose your bindings first';
+}
+
+$('#auto').onclick = fromServer;
+$('#dir').onchange = e => fromFolder(e.target.files);
+$('#filter').onclick = () => { onlyMenu = !onlyMenu; $('#filter').textContent = 'Showing: ' + (onlyMenu ? 'likely menu sounds' : 'all ' + sounds.size); render(); };
+$('#clear').onclick = () => { localStorage.removeItem(SFX_KEY); $('#applied').innerHTML = '<span class="warn">saved sounds cleared — reload the tracker</span>'; };
+$('#apply').onclick = () => {
+  const store = {}; let bytes = 0;
+  ROLES.forEach(([r]) => {
+    const s = sounds.get(bind[r]); if (!s) return;
+    const t = trim(s.buf);
+    const enc = b64(encodeWav(t.data, t.sr));
+    bytes += enc.length; store[r] = enc;
+  });
+  if (!Object.keys(store).length) { $('#applied').innerHTML = '<span class="warn">nothing bound yet</span>'; return; }
+  try {
+    localStorage.setItem(SFX_KEY, JSON.stringify(store));
+    $('#applied').innerHTML = '<span class="ok">' + Object.keys(store).length + ' sounds saved (' +
+      Math.round(bytes / 1024) + ' KB) — reload the tracker</span>';
+  } catch (e) {
+    $('#applied').innerHTML = '<span class="warn">too large for storage — use the cp commands below instead</span>';
+  }
+};
+renderRoles();
+if (location.protocol !== 'file:') fromServer();
+</script>
+</body>
+</html>
